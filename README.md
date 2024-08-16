@@ -91,17 +91,137 @@ spec:
       targetPort: 8080
 ```
 
+Применил.
+
+![alt text](image-1.png)
+
+
 3. Создать отдельный Pod с приложением multitool и убедиться с помощью `curl`, что из пода есть доступ до приложения из п.1 по разным портам в разные контейнеры.
+
+Под остался от прошлого ДЗ еще.
+Подключаюсь:
+```
+kubectl exec multitool-tmp -it bash
+```
+
 4. Продемонстрировать доступ с помощью `curl` по доменному имени сервиса.
+
+```
+curl my-svc-multiport:9001
+```
+
+![alt text](image-2.png)
+
+
+```
+curl my-svc-multiport:9002
+```
+Не подключается:
+![alt text](image-3.png)
+
+```
+kubectl describe svc/my-svc-multiport
+```
+![alt text](image-4.png)
+
+Все ок, но, причина в том что в поде был прописан другой порт:
+
+```
+      - name: multitool
+        image: wbitt/network-multitool
+        env:
+        - name: HTTP_PORT
+          value: "1180"
+```
+
+Меняю код пода на порт 8080:
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.14.2
+        ports:
+        - containerPort: 80
+      - name: multitool
+        image: wbitt/network-multitool
+        env:
+        - name: HTTP_PORT
+          value: "8080"
+        - name: HTTPS_PORT
+          value: "11443"
+        ports:
+        - containerPort: 8080
+          name: http-port
+        - containerPort: 11443
+          name: https-port
+```
+
+Применяю.
+![alt text](image-5.png)
+
+Теперь заработало:
+
+![alt text](image-6.png)
+
 5. Предоставить манифесты Deployment и Service в решении, а также скриншоты или вывод команды п.4.
+
+Предоставил выше.
 
 ------
 
 ### Задание 2. Создать Service и обеспечить доступ к приложениям снаружи кластера
 
 1. Создать отдельный Service приложения из Задания 1 с возможностью доступа снаружи кластера к nginx, используя тип NodePort.
+
+Создал:
+
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-svc-nodeport
+  namespace: default
+spec:
+  selector:
+    app: nginx
+  ports:
+    - name: web
+      port: 80
+      protocol: TCP
+      nodePort: 30080
+  type: NodePort
+```
+Применил:
+![alt text](image-7.png)
+
 2. Продемонстрировать доступ с помощью браузера или `curl` с локального компьютера.
+
+![alt text](image-8.png)
+
+Заработало:
+
+![alt text](image-12.png)
+
+
 3. Предоставить манифест и Service в решении, а также скриншоты или вывод команды п.2.
+
+Предоставил см. выше.
 
 ------
 
